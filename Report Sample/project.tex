@@ -1,0 +1,52 @@
+\documentclass[10pt,a4paper]{article}
+ 
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage[thinc]{esdiff}
+
+\renewcommand{\thesection}{Question \arabic{section}}
+\renewcommand{\thesubsection}{Part \arabic{section}.\alph{subsection}}
+
+
+\title{Project: Symbolic Computation}
+\author{Name \\ \url{email@u.nus.edu.sg}} 
+
+\begin{document}
+
+\maketitle
+
+	
+\section{}
+We consider the polynomial ring.
+
+\subsection{}
+Write a definite clause grammar that  recognises and parses polynomials with real coefficients. We use the LaTeX mathematical notation (see \url{https://www.overleaf.com/learn/latex/List_of_Greek_letters_and_math_symbols}) to input and output the polynomials and the the letter \verb+x+ to represent the indeterminate. The polynomial of Equation~\ref{eq:equation1} is rendered polynomial for the LaTex code: \verb&[5.2 \times  x^{22}- 3.44 \times x^3+25&.
+
+\begin{equation} 
+\label{eq:equation1}
+5.2 \times  x^{22}- 3.44 \times x^3+25
+\end{equation}
+
+
+
+Indicate in you report which additional shorthands and notations (e.g. associativity, recognising $5.2 \  x^{22}$ as $5.2   \times x^{22}$) you implement.
+\subsection{}
+ Some Prolog code is presented in Figure~\ref{fig:code1}.
+
+
+\begin{figure}
+
+\begin{lstlisting}[language=Prolog,frame = single,basicstyle=\footnotesize,numbers=left,stepnumber=1]
+% member/2
+member(X,[X|R]).
+member(X,[Y|R]) :- member(X,R).
+\end{lstlisting}
+\caption{Prolog code snippet (Figures are floating)}
+\label{fig:code1}
+\end{figure}
+\section{} You may download, intall and use a free and open-source TeX front-end program, like TeXworks (\url{http://www.tug.org/texworks/}), or an online LaTeX editor like Overleaf (\url{https://www.overleaf.com/}) to edit and process the report.
+
+\end{document}
+
+
