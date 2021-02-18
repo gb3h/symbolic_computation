@@ -20,6 +20,11 @@ signed_coefficient(signed(43, X)) --> coefficient(X).
 equation([X]) --> signed_coefficient(X).
 equation([X|Y]) --> signed_coefficient(X), equation(Y).
 
+complex_equation(equation(L)) --> equation(L).
+complex_equation(eqn_times(X, Y)) --> [40], complex_equation(X), times_op, complex_equation(Y), [41].
+complex_equation(eqn_plus(X, Y)) -->  [40], complex_equation(X), plus_op, complex_equation(Y), [41].
+complex_equation(eqn_diff(X, Y)) --> [40], complex_equation(X), diff_op, complex_equation(Y), [41].
+
 plus_op --> [43].
 diff_op --> [45].
 times_op --> [42].
@@ -38,10 +43,17 @@ fraction([D|N]) --> digit(D), fraction(N).
 decimal(D) --> [D], {D=46}.
 adder(D) --> [D], {D=43;D=45}.
 
+%comparator for sorting coefficients
+cheaper(<, signed(_,coeff(_,C1)), signed(_,coeff(_,C2))) :- C1>C2.
+cheaper(>, signed(_,coeff(_,C1)), signed(_,coeff(_,C2))) :- C1=<C2.
+
+%higher level evaluation
 eval(signed(OP, X), signed(OP, X1)) :- eval(X, X1).
 eval([X], [X1]) :- eval(X, X1).
 eval([X|T], [X1|T1]) :- eval(X, X1), eval(T, T1).
 eval(coeff(X, Y), coeff(X1, Y1)) :- eval(X, X1), eval(Y, Y1).
+
+%basic evaluation
 eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 + V2.
 eval(diff(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
@@ -65,7 +77,7 @@ parse_and_print.
 process :- readline(L), exclude([X]>>(X =:= 32), L, RL), continue(RL).
 readline(L) :- current_input(S), read_line_to_codes(S, L).
 continue(end_of_file) :- nl, writeln("End"), !, fail.
-continue(L) :- equation(E, L, []), eval(E, R), writeln(R).
+continue(L) :- equation(E, L, []), eval(E, R), predsort(cheaper, R, RR), writeln(RR).
 continue(_) :- writeln("Invalid format").
 
 start(File1, File2):-
