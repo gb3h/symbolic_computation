@@ -15,7 +15,6 @@ coefficient(coeff(number([48]), Y)) --> polynomial(Y).
 coefficient(coeff(X, Y)) --> expression(X), times_op, polynomial(Y).
 
 signed_coefficient(signed(OP, X)) --> adder(OP), coefficient(X).
-signed_coefficient(signed(43, X)) --> coefficient(X).
 
 equation([X]) --> signed_coefficient(X).
 equation([X|Y]) --> signed_coefficient(X), equation(Y).
@@ -44,11 +43,22 @@ decimal(D) --> [D], {D=46}.
 adder(D) --> [D], {D=43;D=45}.
 
 %comparator for sorting coefficients
-cheaper(<, signed(_,coeff(_,C1)), signed(_,coeff(_,C2))) :- C1>C2.
-cheaper(>, signed(_,coeff(_,C1)), signed(_,coeff(_,C2))) :- C1=<C2.
+cheaper(<, coeff(_,C1), coeff(_,C2)) :- C1>C2.
+cheaper(>, coeff(_,C1), coeff(_,C2)) :- C1=<C2.
+
+%simplification
+simplify(L, RR):- simplify_acc(L, [], R), reverse(R, RR).
+simplify_acc([], Acc, Acc).
+simplify_acc([coeff(A,C)|T1], [coeff(B,C)|T2], Res) :- 
+        A+B=:=0 -> 
+            simplify_acc(T1, T2, Res); 
+            simplify_acc(T1, [coeff(R,C)|T2], Res), R is A+B.
+simplify_acc([X|T1], Acc, Res) :- simplify_acc(T1, [X|Acc], Res).
 
 %higher level evaluation
-eval(signed(OP, X), signed(OP, X1)) :- eval(X, X1).
+eval(43, X, X).
+eval(45, coeff(X, Y), coeff(X1, Y)) :- X1 is -1*X.
+eval(signed(OP, X), R) :- eval(X, X1), eval(OP, X1, R).
 eval([X], [X1]) :- eval(X, X1).
 eval([X|T], [X1|T1]) :- eval(X, X1), eval(T, T1).
 eval(coeff(X, Y), coeff(X1, Y1)) :- eval(X, X1), eval(Y, Y1).
@@ -74,10 +84,15 @@ get_frac([D|L], V) :- (D=46) -> get_frac_helper(L, VV), V is VV; get_frac(L, V).
 %For Q1a
 parse_and_print :- process, !, parse_and_print.
 parse_and_print.
-process :- readline(L), exclude([X]>>(X =:= 32), L, RL), continue(RL).
+process :- readline(L), exclude([X]>>(X =:= 32), L, [H|T]), (H=:=45 -> continue([H|T]); continue([43,H|T])).
 readline(L) :- current_input(S), read_line_to_codes(S, L).
 continue(end_of_file) :- nl, writeln("End"), !, fail.
-continue(L) :- equation(E, L, []), eval(E, R), predsort(cheaper, R, RR), writeln(RR).
+continue(L) :- 
+    equation(E, L, []),
+    eval(E, R), 
+    predsort(cheaper, R, RR), 
+    simplify(RR, RRR),
+    writeln(RRR).
 continue(_) :- writeln("Invalid format").
 
 start(File1, File2):-
