@@ -1,0 +1,8 @@
++5*x^3
+[+5*x^3]*[+5*x^3]
+[[+5*x^3]*[+5*x^3]]*[+5*x^3]
++5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1.03
++(13.03 + (12.8 - 7)) * x^{23} - 8.1 * x^4 + 24 - 3
+-10 \times x^5 - 8 \times x^4 - 13.09
+[+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1] * [+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1]
+[[+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1] * [+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1]] * [+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1] * [+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1]

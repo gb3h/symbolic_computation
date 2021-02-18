@@ -19,10 +19,10 @@ signed_coefficient(signed(OP, X)) --> adder(OP), coefficient(X).
 equation([X]) --> signed_coefficient(X).
 equation([X|Y]) --> signed_coefficient(X), equation(Y).
 
-complex_equation(equation(L)) --> equation(L).
-complex_equation(eqn_times(X, Y)) --> [40], complex_equation(X), times_op, complex_equation(Y), [41].
-complex_equation(eqn_plus(X, Y)) -->  [40], complex_equation(X), plus_op, complex_equation(Y), [41].
-complex_equation(eqn_diff(X, Y)) --> [40], complex_equation(X), diff_op, complex_equation(Y), [41].
+complex_equation(cmplx_eqn(L)) --> equation(L).
+complex_equation(eqn_times(X, Y)) --> [91], complex_equation(X), [93], times_op, [91], complex_equation(Y), [93].
+complex_equation(eqn_plus(X, Y)) --> [91], complex_equation(X), [93], plus_op, [91], complex_equation(Y), [93].
+complex_equation(eqn_diff(X, Y)) --> [91], complex_equation(X), [93], diff_op, [91], complex_equation(Y), [93].
 
 plus_op --> [43].
 diff_op --> [45].
@@ -47,17 +47,40 @@ cheaper(<, coeff(_,C1), coeff(_,C2)) :- C1>C2.
 cheaper(>, coeff(_,C1), coeff(_,C2)) :- C1=<C2.
 
 %simplification
-simplify(L, RR):- simplify_acc(L, [], R), reverse(R, RR).
+simplify(L, simple(RR)):- simplify_acc(L, [], R), reverse(R, RR).
 simplify_acc([], Acc, Acc).
 simplify_acc([coeff(A,C)|T1], [coeff(B,C)|T2], Res) :- 
         A+B=:=0 -> 
             simplify_acc(T1, T2, Res); 
-            simplify_acc(T1, [coeff(R,C)|T2], Res), R is A+B.
+            R is A+B,
+            simplify_acc(T1, [coeff(R,C)|T2], Res).
 simplify_acc([X|T1], Acc, Res) :- simplify_acc(T1, [X|Acc], Res).
 
+%function helper for eqn product
+eqn_times_single(_L1, [], Acc, Acc).
+eqn_times_single(coeff(A,B), [coeff(C,D)|T], Acc, Res) :- eqn_times_single(coeff(A,B), T, [coeff(E,F)|Acc], Res), E is A*C, F is B+D.
+
+eqn_times_list([], _L2, Acc, Acc).
+eqn_times_list([H|T], L2, Acc, Res) :-
+    eqn_times_single(H, L2, [], R1),
+    append(Acc, R1, R3),
+    eqn_times_list(T, L2, R3, Res).
+
+eqn_times_fn(simple(L1), simple(L2), R) :- eqn_times_list(L1, L2, [], R).
+
+%eval a simplified eqn
+eval(simple(L), simple(L)).
+
+%complex eqn evaluation
+eval(eqn_times(X, Y), R) :- 
+    eval(X, XR), 
+    eval(Y, YR),
+    eqn_times_fn(XR, YR, R1),
+    predsort(cheaper, R1, R2),
+    simplify(R2, R).
+
 %higher level evaluation
-eval(43, X, X).
-eval(45, coeff(X, Y), coeff(X1, Y)) :- X1 is -1*X.
+eval(cmplx_eqn(L), R) :- eval(L, L1), predsort(cheaper, L1, L2), simplify(L2, R).
 eval(signed(OP, X), R) :- eval(X, X1), eval(OP, X1, R).
 eval([X], [X1]) :- eval(X, X1).
 eval([X|T], [X1|T1]) :- eval(X, X1), eval(T, T1).
@@ -69,6 +92,9 @@ eval(diff(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
 eval(number(L), V) :- reverse(L, LL), subeval(LL, V).
 eval(fraction(L), R) :- reverse(L, LL), get_int(LL, I), get_frac(L, F), R is I + 0.1*F.
+
+eval(43, X, X).
+eval(45, coeff(X, Y), coeff(X1, Y)) :- X1 is -1*X.
 
 subeval([D], V) :- !, (D=48;D=49;D=50;D=51;D=52;D=53;D=54;D=55;D=56;D=57), V is (D-48).
 subeval([D|L], V) :- subeval(L, VV), V is ((VV*10) + (D-48)).
@@ -84,15 +110,14 @@ get_frac([D|L], V) :- (D=46) -> get_frac_helper(L, VV), V is VV; get_frac(L, V).
 %For Q1a
 parse_and_print :- process, !, parse_and_print.
 parse_and_print.
-process :- readline(L), exclude([X]>>(X =:= 32), L, [H|T]), (H=:=45 -> continue([H|T]); continue([43,H|T])).
+process :- readline(L), exclude([X]>>(X =:= 32), L, LR), continue(LR).
 readline(L) :- current_input(S), read_line_to_codes(S, L).
 continue(end_of_file) :- nl, writeln("End"), !, fail.
 continue(L) :- 
-    equation(E, L, []),
+    complex_equation(E, L, []),
+    writeln(E),
     eval(E, R), 
-    predsort(cheaper, R, RR), 
-    simplify(RR, RRR),
-    writeln(RRR).
+    writeln(R).
 continue(_) :- writeln("Invalid format").
 
 start(File1, File2):-
@@ -105,12 +130,16 @@ start(File1, File2):-
 process_file(Str1, _) :-
     at_end_of_stream(Str1).
 
-process_file(Str1,Str2) :-
+process_file(Str1, Str2) :-
     \+ at_end_of_stream(Str1),
-    read_line_to_codes(Str1, X),
-    %eval(X, R),
-    writeln(Str2, X),
+    read_line_to_codes(Str1, L),
+    exclude([X]>>(X =:= 32), L, LR),
+    cont(Str2, LR),
     process_file(Str1, Str2).
 
+cont(Str2, LR):-
+    complex_equation(E, LR, []),
+    eval(E, R),
+    writeln(Str2, R).
 
-%start(File1, File2) :- open(File1, read, Stream1)
+cont(Str2, _):- writeln(Str2, "Input is not in valid format. See report or example file for valid input examples.").
