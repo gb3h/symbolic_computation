@@ -1,0 +1,4 @@
+\diff{-5*x^3}{x}
+\diff{+(13.03 + (12.8 - 7)) * x^{23} - 8.1 * x^4 + 24 - 3}{x}
+\diff{[+5*x^3]*[+5*x^3]}{x}
+\diff{[[+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1] * [+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1]] * [+5 \times x^3 - 4.2 \times x^2 - 3 \times x - 1]}{x}

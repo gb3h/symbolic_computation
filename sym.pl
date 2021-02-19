@@ -8,7 +8,7 @@ expression(power(X, Y)) --> [40], expression(X), power_op, digit(Y), [41].
 expression(power(X, Y)) --> [40], expression(X), power_op, [123], number(Y), [125], [41].
 expression(times(X, Y)) --> [40], expression(X), times_op, expression(Y), [41].
 expression(plus(X, Y)) -->  [40], expression(X), plus_op, expression(Y), [41].
-expression(diff(X, Y)) --> [40], expression(X), diff_op, expression(Y), [41].
+expression(minus(X, Y)) --> [40], expression(X), minus_op, expression(Y), [41].
 
 coefficient(coeff(X, number([48]))) --> expression(X).
 coefficient(coeff(number([48]), Y)) --> polynomial(Y).
@@ -22,14 +22,17 @@ equation([X|Y]) --> signed_coefficient(X), equation(Y).
 complex_equation(cmplx_eqn(L)) --> equation(L).
 complex_equation(eqn_times(X, Y)) --> [91], complex_equation(X), [93], times_op, [91], complex_equation(Y), [93].
 complex_equation(eqn_plus(X, Y)) --> [91], complex_equation(X), [93], plus_op, [91], complex_equation(Y), [93].
-complex_equation(eqn_diff(X, Y)) --> [91], complex_equation(X), [93], diff_op, [91], complex_equation(Y), [93].
+complex_equation(eqn_minus(X, Y)) --> [91], complex_equation(X), [93], minus_op, [91], complex_equation(Y), [93].
+
+complex_equation(diff(X)) --> diff_symbol, [123], complex_equation(X), [125], [123], x_sym, [125].
 
 plus_op --> [43].
-diff_op --> [45].
+minus_op --> [45].
 times_op --> [42].
 times_op --> [92, 116, 105, 109, 101, 115].
 power_op --> [94].
 x_sym --> [120].
+diff_symbol --> [92, 100, 105, 102, 102].
 
 number([D]) --> digit(D).
 number([D|N]) --> digit(D), number(N).
@@ -68,6 +71,17 @@ eqn_times_list([H|T], L2, Acc, Res) :-
 
 eqn_times_fn(simple(L1), simple(L2), R) :- eqn_times_list(L1, L2, [], R).
 
+%function for differentiation
+differentiate(simple(L), simple(R)):- differentiate_acc(L, [], R).
+
+differentiate_acc([], Acc, Acc).
+differentiate_acc([coeff(A,B)|T], Acc, Res) :-
+    (B > 0) ->
+        C is A*B,
+        D is B-1,
+        differentiate_acc(T, [coeff(C,D)|Acc], Res);
+        differentiate_acc(T, Acc, Res).
+
 %eval a simplified eqn
 eval(simple(L), simple(L)).
 
@@ -79,6 +93,10 @@ eval(eqn_times(X, Y), R) :-
     predsort(cheaper, R1, R2),
     simplify(R2, R).
 
+eval(diff(X), R) :-
+    eval(X, X1),
+    differentiate(X1, R).
+
 %higher level evaluation
 eval(cmplx_eqn(L), R) :- eval(L, L1), predsort(cheaper, L1, L2), simplify(L2, R).
 eval(signed(OP, X), R) :- eval(X, X1), eval(OP, X1, R).
@@ -88,7 +106,7 @@ eval(coeff(X, Y), coeff(X1, Y1)) :- eval(X, X1), eval(Y, Y1).
 
 %basic evaluation
 eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 + V2.
-eval(diff(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
+eval(minus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
 eval(number(L), V) :- reverse(L, LL), subeval(LL, V).
 eval(fraction(L), R) :- reverse(L, LL), get_int(LL, I), get_frac(L, F), R is I + 0.1*F.
