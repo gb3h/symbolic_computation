@@ -133,9 +133,7 @@ readline(L) :- current_input(S), read_line_to_codes(S, L).
 continue(end_of_file) :- nl, writeln("End"), !, fail.
 continue(L) :- 
     complex_equation(E, L, []),
-    writeln(E),
-    eval(E, R), 
-    writeln(R).
+    writeln(E).
 continue(_) :- writeln("Invalid format").
 
 start(File1, File2):-
