@@ -3,7 +3,7 @@ polynomial(number(Y)) --> x_sym, power_op, [123], number(Y), [125].
 polynomial(number([Y])) --> x_sym, power_op, digit(Y).
 
 expression(number(X)) --> number(X).
-expression(fraction(X)) --> fraction(X).
+expression(float(X)) --> float(X).
 expression(power(X, Y)) --> [40], expression(X), power_op, digit(Y), [41].
 expression(power(X, Y)) --> [40], expression(X), power_op, [123], number(Y), [125], [41].
 expression(times(X, Y)) --> [40], expression(X), times_op, expression(Y), [41].
@@ -39,8 +39,8 @@ number([D|N]) --> digit(D), number(N).
 number([D|N]) --> digit(D), number(N).
 digit(D) --> [D], {D=48;D=49;D=50;D=51;D=52;D=53;D=54;D=55;D=56;D=57}.
 
-fraction([D|N]) --> decimal(D), number(N).
-fraction([D|N]) --> digit(D), fraction(N).
+float([D|N]) --> decimal(D), number(N).
+float([D|N]) --> digit(D), float(N).
 
 decimal(D) --> [D], {D=46}.
 adder(D) --> [D], {D=43;D=45}.
@@ -109,7 +109,7 @@ eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 + V2.
 eval(minus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
 eval(number(L), V) :- reverse(L, LL), subeval(LL, V).
-eval(fraction(L), R) :- reverse(L, LL), get_int(LL, I), get_frac(L, F), R is I + 0.1*F.
+eval(float(L), R) :- reverse(L, LL), get_int(LL, I), get_frac(L, F), R is I + 0.1*F.
 
 eval(43, X, X).
 eval(45, coeff(X, Y), coeff(X1, Y)) :- X1 is -1*X.
