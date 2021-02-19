@@ -48,11 +48,11 @@ float([D|N]) --> digit(D), float(N).
 decimal(D) --> [D], {D=46}.
 adder(D) --> [D], {D=43;D=45}.
 
-%comparator for sorting coefficients
+% comparator for sorting coefficients
 cheaper(<, coeff(_,C1), coeff(_,C2)) :- C1>C2.
 cheaper(>, coeff(_,C1), coeff(_,C2)) :- C1=<C2.
 
-%simplification
+% simplification
 simplify(L, simple(RR)):- simplify_acc(L, [], R), reverse(R, RR).
 simplify_acc([], Acc, Acc).
 simplify_acc([coeff(A,C)|T1], [coeff(B,C)|T2], Res) :- 
@@ -62,7 +62,7 @@ simplify_acc([coeff(A,C)|T1], [coeff(B,C)|T2], Res) :-
             simplify_acc(T1, [coeff(R,C)|T2], Res).
 simplify_acc([X|T1], Acc, Res) :- simplify_acc(T1, [X|Acc], Res).
 
-%function helper for eqn product
+% function helper for eqn product
 eqn_times_single(_L1, [], Acc, Acc).
 eqn_times_single(coeff(A,B), [coeff(C,D)|T], Acc, Res) :- eqn_times_single(coeff(A,B), T, [coeff(E,F)|Acc], Res), E is A*C, F is B+D.
 
@@ -74,7 +74,7 @@ eqn_times_list([H|T], L2, Acc, Res) :-
 
 eqn_times_fn(simple(L1), simple(L2), R) :- eqn_times_list(L1, L2, [], R).
 
-%function for differentiation
+% function for differentiation
 differentiate(simple(L), simple(R)):- differentiate_acc(L, [], R).
 
 differentiate_acc([], Acc, Acc).
@@ -85,10 +85,10 @@ differentiate_acc([coeff(A,B)|T], Acc, Res) :-
         differentiate_acc(T, [coeff(C,D)|Acc], Res);
         differentiate_acc(T, Acc, Res).
 
-%eval a simplified eqn
+% eval a simplified eqn
 eval(simple(L), simple(L)).
 
-%complex eqn evaluation
+% complex eqn evaluation
 eval(eqn_times(X, Y), R) :- 
     eval(X, XR), 
     eval(Y, YR),
@@ -100,20 +100,20 @@ eval(diff(X), R) :-
     eval(X, X1),
     differentiate(X1, R).
 
-%higher level evaluation
+% higher level evaluation
 eval(cmplx_eqn(L), R) :- eval(L, L1), predsort(cheaper, L1, L2), simplify(L2, R).
 eval(signed(OP, X), R) :- eval(X, X1), eval(OP, X1, R).
 eval([X], [X1]) :- eval(X, X1).
 eval([X|T], [X1|T1]) :- eval(X, X1), eval(T, T1).
 eval(coeff(X, Y), coeff(X1, Y1)) :- eval(X, X1), eval(Y, Y1).
 
-%fraction evaluation
+% fraction evaluation
 eval(fraction(X, Y), R) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Y1), R is X1/Y1.
 eval(fraction(X, Y), frac(XR, YR)) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Z), XR is X1/Z, YR is Y1/Z.
 
 eval(plus(E1, E2), frac(E,F)) :- eval(E1, frac(A, B)), eval(E2, frac(C, D)), E is A*D+B*C, F is B*D.
 
-%basic evaluation
+% basic evaluation
 eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 + V2.
 eval(minus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
@@ -152,7 +152,7 @@ gcd(X, Y, Z) :-
     Y1 is Y - X,
     gcd(X, Y1, Z).
 
-%For Q1a
+% For Q1a
 parse_and_print :- process, !, parse_and_print.
 parse_and_print.
 process :- readline(L), exclude([X]>>(X =:= 32), L, LR), continue(LR).
@@ -163,6 +163,7 @@ continue(L) :-
     writeln(E).
 continue(_) :- writeln("Invalid format").
 
+% Part 1c
 start(File1, File2):-
     open(File1, read, Str1),
     open(File2, write, Str2),
