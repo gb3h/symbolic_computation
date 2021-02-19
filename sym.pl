@@ -4,6 +4,7 @@ polynomial(number([Y])) --> x_sym, power_op, digit(Y).
 
 expression(number(X)) --> number(X).
 expression(float(X)) --> float(X).
+expression(fraction(number(X), number(Y))) --> frac_symbol, [123], number(X), [125], [123], number(Y), [125].
 expression(power(X, Y)) --> [40], expression(X), power_op, digit(Y), [41].
 expression(power(X, Y)) --> [40], expression(X), power_op, [123], number(Y), [125], [41].
 expression(times(X, Y)) --> [40], expression(X), times_op, expression(Y), [41].
@@ -33,6 +34,8 @@ times_op --> [92, 116, 105, 109, 101, 115].
 power_op --> [94].
 x_sym --> [120].
 diff_symbol --> [92, 100, 105, 102, 102].
+frac_symbol --> [92, 102, 114, 97, 99].
+
 
 number([D]) --> digit(D).
 number([D|N]) --> digit(D), number(N).
@@ -104,12 +107,18 @@ eval([X], [X1]) :- eval(X, X1).
 eval([X|T], [X1|T1]) :- eval(X, X1), eval(T, T1).
 eval(coeff(X, Y), coeff(X1, Y1)) :- eval(X, X1), eval(Y, Y1).
 
+%fraction evaluation
+eval(fraction(X, Y), R) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Y1), R is X1/Y1.
+eval(fraction(X, Y), frac(XR, YR)) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Z), XR is X1/Z, YR is Y1/Z.
+
+eval(plus(E1, E2), frac(E,F)) :- eval(E1, frac(A, B)), eval(E2, frac(C, D)), E is A*D+B*C, F is B*D.
+
 %basic evaluation
 eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 + V2.
 eval(minus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
 eval(number(L), V) :- reverse(L, LL), subeval(LL, V).
-eval(float(L), R) :- reverse(L, LL), get_int(LL, I), get_frac(L, F), R is I + 0.1*F.
+eval(float(L), R) :- reverse(L, LL), get_int(LL, I), get_float(L, F), R is I + 0.1*F.
 
 eval(43, X, X).
 eval(45, coeff(X, Y), coeff(X1, Y)) :- X1 is -1*X.
@@ -121,9 +130,27 @@ get_int_helper([D], V) :- !, (D=48;D=49;D=50;D=51;D=52;D=53;D=54;D=55;D=56;D=57)
 get_int_helper([D|L], V) :- get_int_helper(L, VV), V is ((VV*10) + (D-48)).
 get_int([D|L], V) :- (D=46) -> get_int_helper(L, VV), V is VV; get_int(L, V).
 
-get_frac_helper([D], V) :- !, (D=48;D=49;D=50;D=51;D=52;D=53;D=54;D=55;D=56;D=57), V is (D-48).
-get_frac_helper([D|L], V) :- get_frac_helper(L, VV), V is ((VV*0.1) + (D-48)).
-get_frac([D|L], V) :- (D=46) -> get_frac_helper(L, VV), V is VV; get_frac(L, V).
+get_float_helper([D], V) :- !, (D=48;D=49;D=50;D=51;D=52;D=53;D=54;D=55;D=56;D=57), V is (D-48).
+get_float_helper([D|L], V) :- get_float_helper(L, VV), V is ((VV*0.1) + (D-48)).
+get_float([D|L], V) :- (D=46) -> get_float_helper(L, VV), V is VV; get_float(L, V).
+
+%function helpers for fractions
+gcd(X, Y, Z) :-
+    X < 0, !,
+    gcd(-X, Y, Z).
+gcd(X, Y, Z) :-
+    Y < 0, !,
+    gcd(X, -Y, Z).
+gcd(X, 0, X) :- X > 0.
+gcd(0, Y, Y) :- Y > 0.
+gcd(X, Y, Z) :-
+    X > Y, Y > 0,
+    X1 is X - Y,
+    gcd(Y, X1, Z).
+gcd(X, Y, Z) :-
+    X =< Y, X > 0,
+    Y1 is Y - X,
+    gcd(X, Y1, Z).
 
 %For Q1a
 parse_and_print :- process, !, parse_and_print.
