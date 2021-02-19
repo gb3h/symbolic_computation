@@ -4,7 +4,7 @@ polynomial(number([Y])) --> x_sym, power_op, digit(Y).
 
 expression(number(X)) --> number(X).
 expression(float(X)) --> float(X).
-expression(fraction(number(X), number(Y))) --> frac_symbol, [123], number(X), [125], [123], number(Y), [125].
+expression(frac(number(X), number(Y))) --> frac_symbol, [123], number(X), [125], [123], number(Y), [125].
 expression(power(X, Y)) --> [40], expression(X), power_op, digit(Y), [41].
 expression(power(X, Y)) --> [40], expression(X), power_op, [123], number(Y), [125], [41].
 expression(times(X, Y)) --> [40], expression(X), times_op, expression(Y), [41].
@@ -56,15 +56,15 @@ cheaper(>, coeff(_,C1), coeff(_,C2)) :- C1=<C2.
 simplify(L, simple(RR)):- simplify_acc(L, [], R), reverse(R, RR).
 simplify_acc([], Acc, Acc).
 simplify_acc([coeff(A,C)|T1], [coeff(B,C)|T2], Res) :- 
-        A+B=:=0 -> 
+        eval(plus(A,B), R),
+        ((number(R), R=:=0) -> 
             simplify_acc(T1, T2, Res); 
-            R is A+B,
-            simplify_acc(T1, [coeff(R,C)|T2], Res).
+            simplify_acc(T1, [coeff(R,C)|T2], Res)).
 simplify_acc([X|T1], Acc, Res) :- simplify_acc(T1, [X|Acc], Res).
 
 % function helper for eqn product
 eqn_times_single(_L1, [], Acc, Acc).
-eqn_times_single(coeff(A,B), [coeff(C,D)|T], Acc, Res) :- eqn_times_single(coeff(A,B), T, [coeff(E,F)|Acc], Res), E is A*C, F is B+D.
+eqn_times_single(coeff(A,B), [coeff(C,D)|T], Acc, Res) :- eqn_times_single(coeff(A,B), T, [coeff(E,F)|Acc], Res), eval(times(A,C),E), F is B+D.
 
 eqn_times_list([], _L2, Acc, Acc).
 eqn_times_list([H|T], L2, Acc, Res) :-
@@ -75,7 +75,7 @@ eqn_times_list([H|T], L2, Acc, Res) :-
 eqn_times_fn(simple(L1), simple(L2), R) :- eqn_times_list(L1, L2, [], R).
 
 % function for differentiation
-differentiate(simple(L), simple(R)):- differentiate_acc(L, [], R).
+differentiate(simple(L), simple(RR)):- differentiate_acc(L, [], R), reverse(R, RR).
 
 differentiate_acc([], Acc, Acc).
 differentiate_acc([coeff(A,B)|T], Acc, Res) :-
@@ -84,9 +84,32 @@ differentiate_acc([coeff(A,B)|T], Acc, Res) :-
         D is B-1,
         differentiate_acc(T, [coeff(C,D)|Acc], Res);
         differentiate_acc(T, Acc, Res).
+    
+frac_times_int(frac(A, B), C, R) :- D is A*C, eval(frac(D, B), R).
 
 % eval a simplified eqn
 eval(simple(L), simple(L)).
+
+% fraction evaluation
+eval(X, R) :- number(X) -> R is X; false.
+
+eval(frac(X, Y), R) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Y1), R is X1/Y1.
+eval(frac(X, Y), frac(XR, YR)) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Z), XR is X1/Z, YR is Y1/Z.
+
+eval(plus(frac(X1, Y1), frac(X2, Y2)), R) :- eval(X1, A), eval(Y1, B), eval(X2, C), eval(Y2, D), E is A*D+B*C, F is B*D, eval(frac(E, F), R).
+
+eval(times(frac(X1, Y1), frac(X2, Y2)), R) :- 
+    eval(X1, A), eval(Y1, B), 
+    eval(X2, C), eval(Y2, D), 
+    E is A*C, F is B*D, eval(frac(E, F), R).
+
+eval(times(frac(X1, Y1), Z), R) :- 
+    eval(frac(X1, Y1), frac(A, B)), 
+    eval(Z, C), 
+    frac_times_int(frac(A, B), C, R).
+
+eval(times(Z, frac(X1, Y1)), R) :- 
+    eval(times(frac(X1, Y1), Z), R).
 
 % complex eqn evaluation
 eval(eqn_times(X, Y), R) :- 
@@ -107,20 +130,15 @@ eval([X], [X1]) :- eval(X, X1).
 eval([X|T], [X1|T1]) :- eval(X, X1), eval(T, T1).
 eval(coeff(X, Y), coeff(X1, Y1)) :- eval(X, X1), eval(Y, Y1).
 
-% fraction evaluation
-eval(fraction(X, Y), R) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Y1), R is X1/Y1.
-eval(fraction(X, Y), frac(XR, YR)) :- eval(X, X1), eval(Y, Y1), gcd(X1, Y1, Z), XR is X1/Z, YR is Y1/Z.
-
-eval(plus(E1, E2), frac(E,F)) :- eval(E1, frac(A, B)), eval(E2, frac(C, D)), E is A*D+B*C, F is B*D.
-
 % basic evaluation
-eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 + V2.
+eval(plus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), number(V1), number(V2), V is V1 + V2.
 eval(minus(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 - V2.
 eval(times(E1, E2), V) :- eval(E1, V1), eval(E2, V2), V is V1 * V2.
 eval(number(L), V) :- reverse(L, LL), subeval(LL, V).
 eval(float(L), R) :- reverse(L, LL), get_int(LL, I), get_float(L, F), R is I + 0.1*F.
 
 eval(43, X, X).
+eval(45, coeff(frac(A, B), Y), coeff(frac(A1, B), Y)) :- A1 is -1*A.
 eval(45, coeff(X, Y), coeff(X1, Y)) :- X1 is -1*X.
 
 subeval([D], V) :- !, (D=48;D=49;D=50;D=51;D=52;D=53;D=54;D=55;D=56;D=57), V is (D-48).
@@ -160,7 +178,9 @@ readline(L) :- current_input(S), read_line_to_codes(S, L).
 continue(end_of_file) :- nl, writeln("End"), !, fail.
 continue(L) :- 
     complex_equation(E, L, []),
-    writeln(E).
+    writeln(E),
+    eval(E, R),
+    writeln(R).
 continue(_) :- writeln("Invalid format").
 
 % Part 1c
